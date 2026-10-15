@@ -1,0 +1,238 @@
+openapi: 3.0.3
+info:
+  title: Servicio Reseñas - Marketplace de Alojamientos
+  version: 1.0.0
+  description: 'Contrato del servicio Reseñas: rutas públicas (las enruta el API Gateway) y rutas internas /internal/* (solo dentro de la red de Docker Compose). Swagger UI: http://localhost:8089/swagger-ui.html'
+servers:
+- url: http://localhost:8089
+  description: Servicio Reseñas (local)
+security:
+- bearerAuth: []
+tags:
+- name: Reseñas
+paths:
+  /bookings/{id}/review:
+    post:
+      tags:
+      - Reseñas
+      summary: Calificar y reseñar una reserva COMPLETADA propia
+      operationId: createReview
+      description: 'Historias: HU-32. Rol requerido: HUESPED.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewInput'
+      responses:
+        '201':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+  /listings/{id}/reviews:
+    get:
+      tags:
+      - Reseñas
+      summary: Reseñas visibles y calificación promedio de una publicación
+      operationId: listReviews
+      description: 'Historias: HU-33.'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewList'
+        '404':
+          $ref: '#/components/responses/E404'
+  /admin/reviews/{id}/hide:
+    post:
+      tags:
+      - Reseñas
+      summary: Ocultar reseña que incumple las políticas
+      operationId: hideReview
+      description: 'Historias: HU-36. Rol requerido: ADMINISTRADOR.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReasonInput'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+  /internal/reviews/averages:
+    get:
+      tags:
+      - Reseñas
+      summary: Calificación promedio de varias publicaciones, sin reseñas ocultas (la consume Búsqueda)
+      operationId: reviewAverages
+      description: 'Historias: HU-21, HU-33. Operación interna entre servicios (no expuesta al front).'
+      parameters:
+      - name: listingIds
+        in: query
+        schema:
+          type: string
+        description: Ids separados por coma
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Averages'
+        '400':
+          $ref: '#/components/responses/E400'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Averages:
+      type: object
+      additionalProperties:
+        type: number
+      description: Mapa publicacionId a calificación promedio
+    Error:
+      type: object
+      properties:
+        codigo:
+          type: string
+        mensaje:
+          type: string
+        detalles:
+          type: array
+          items:
+            type: string
+    ReasonInput:
+      type: object
+      properties:
+        motivo:
+          type: string
+          minLength: 3
+      required:
+      - motivo
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reservaId:
+          type: string
+          format: uuid
+        huespedId:
+          type: string
+          format: uuid
+        publicacionId:
+          type: string
+          format: uuid
+        calificacion:
+          type: integer
+        contenido:
+          type: string
+        visible:
+          type: boolean
+        fecha:
+          type: string
+          format: date-time
+    ReviewInput:
+      type: object
+      properties:
+        calificacion:
+          type: integer
+          minimum: 1
+          maximum: 5
+        contenido:
+          type: string
+      required:
+      - calificacion
+      - contenido
+    ReviewList:
+      type: object
+      properties:
+        calificacionPromedio:
+          type: number
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+  responses:
+    E400:
+      description: Solicitud inválida (validación)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E401:
+      description: No autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E403:
+      description: Sin permiso para el rol o recurso
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E404:
+      description: No encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E409:
+      description: Conflicto (reserva superpuesta, estado no permitido, duplicado)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

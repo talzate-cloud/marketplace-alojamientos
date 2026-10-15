@@ -1,0 +1,343 @@
+openapi: 3.0.3
+info:
+  title: Servicio Disponibilidad - Marketplace de Alojamientos
+  version: 1.0.0
+  description: 'Contrato del servicio Disponibilidad: rutas públicas (las enruta el API Gateway) y rutas internas /internal/* (solo dentro de la red de Docker Compose). Swagger UI: http://localhost:8083/swagger-ui.html'
+servers:
+- url: http://localhost:8083
+  description: Servicio Disponibilidad (local)
+security:
+- bearerAuth: []
+tags:
+- name: Disponibilidad
+paths:
+  /listings/{id}/availability:
+    post:
+      tags:
+      - Disponibilidad
+      summary: Registrar periodo disponible
+      operationId: addPeriod
+      description: 'Historias: HU-16. Rol requerido: ANFITRION.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PeriodInput'
+      responses:
+        '201':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Period'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+  /listings/{id}/availability/{periodId}:
+    put:
+      tags:
+      - Disponibilidad
+      summary: Editar periodo (no permitido si tiene reservas confirmadas)
+      operationId: updatePeriod
+      description: 'Historias: HU-16. Rol requerido: ANFITRION.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: periodId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PeriodInput'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Period'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+    delete:
+      tags:
+      - Disponibilidad
+      summary: Eliminar periodo (no permitido si tiene reservas confirmadas)
+      operationId: deletePeriod
+      description: 'Historias: HU-16. Rol requerido: ANFITRION.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: periodId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Operación exitosa
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+  /listings/{id}/calendar:
+    get:
+      tags:
+      - Disponibilidad
+      summary: Consultar calendario (disponible, reservado, bloqueado)
+      operationId: getCalendar
+      description: 'Historias: HU-17.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Calendar'
+        '401':
+          $ref: '#/components/responses/E401'
+        '404':
+          $ref: '#/components/responses/E404'
+  /internal/availability/block:
+    post:
+      tags:
+      - Disponibilidad
+      summary: Bloquear periodo al confirmar una reserva
+      operationId: blockPeriod
+      description: 'Historias: HU-18. Operación interna entre servicios (no expuesta al front).'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlockRequest'
+      responses:
+        '204':
+          description: Operación exitosa
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+  /internal/availability/release:
+    post:
+      tags:
+      - Disponibilidad
+      summary: Liberar periodo al cancelar si la política lo permite
+      operationId: releasePeriod
+      description: 'Historias: HU-18. Operación interna entre servicios (no expuesta al front).'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlockRequest'
+      responses:
+        '204':
+          description: Operación exitosa
+        '404':
+          $ref: '#/components/responses/E404'
+  /internal/availability/check:
+    post:
+      tags:
+      - Disponibilidad
+      summary: Consultar disponibilidad de un periodo para una o varias publicaciones
+      operationId: checkAvailability
+      description: 'Historias: HU-19, HU-22, HU-23. Operación interna entre servicios (no expuesta al front).'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AvailabilityCheck'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailabilityResult'
+        '400':
+          $ref: '#/components/responses/E400'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AvailabilityCheck:
+      type: object
+      properties:
+        publicacionIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        fechaLlegada:
+          type: string
+          format: date
+        fechaSalida:
+          type: string
+          format: date
+      required:
+      - publicacionIds
+      - fechaLlegada
+      - fechaSalida
+    AvailabilityResult:
+      type: object
+      properties:
+        disponibles:
+          type: array
+          items:
+            type: string
+            format: uuid
+    BlockRequest:
+      type: object
+      properties:
+        publicacionId:
+          type: string
+          format: uuid
+        reservaId:
+          type: string
+          format: uuid
+        fechaLlegada:
+          type: string
+          format: date
+        fechaSalida:
+          type: string
+          format: date
+      required:
+      - publicacionId
+      - reservaId
+      - fechaLlegada
+      - fechaSalida
+    Calendar:
+      type: object
+      properties:
+        publicacionId:
+          type: string
+          format: uuid
+        periodos:
+          type: array
+          items:
+            $ref: '#/components/schemas/Period'
+    Error:
+      type: object
+      properties:
+        codigo:
+          type: string
+        mensaje:
+          type: string
+        detalles:
+          type: array
+          items:
+            type: string
+    Period:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        fechaInicio:
+          type: string
+          format: date
+        fechaFin:
+          type: string
+          format: date
+        estado:
+          type: string
+          enum:
+          - DISPONIBLE
+          - RESERVADO
+          - BLOQUEADO
+    PeriodInput:
+      type: object
+      properties:
+        fechaInicio:
+          type: string
+          format: date
+        fechaFin:
+          type: string
+          format: date
+      required:
+      - fechaInicio
+      - fechaFin
+  responses:
+    E400:
+      description: Solicitud inválida (validación)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E401:
+      description: No autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E403:
+      description: Sin permiso para el rol o recurso
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E404:
+      description: No encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E409:
+      description: Conflicto (reserva superpuesta, estado no permitido, duplicado)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

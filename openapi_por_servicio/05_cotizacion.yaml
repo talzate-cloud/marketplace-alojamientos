@@ -1,0 +1,222 @@
+openapi: 3.0.3
+info:
+  title: Servicio Cotización - Marketplace de Alojamientos
+  version: 1.0.0
+  description: 'Contrato del servicio Cotización: rutas públicas (las enruta el API Gateway) y rutas internas /internal/* (solo dentro de la red de Docker Compose). Swagger UI: http://localhost:8085/swagger-ui.html'
+servers:
+- url: http://localhost:8085
+  description: Servicio Cotización (local)
+security:
+- bearerAuth: []
+tags:
+- name: Cotización
+paths:
+  /quotes:
+    post:
+      tags:
+      - Cotización
+      summary: Generar cotización desglosada
+      operationId: createQuote
+      description: 'Historias: HU-22. Rol requerido: HUESPED.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuoteRequest'
+      responses:
+        '201':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Quote'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '422':
+          $ref: '#/components/responses/E422'
+  /quotes/{id}:
+    get:
+      tags:
+      - Cotización
+      summary: Consultar una cotización
+      operationId: getQuote
+      description: 'Historias: HU-22.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Quote'
+        '401':
+          $ref: '#/components/responses/E401'
+        '404':
+          $ref: '#/components/responses/E404'
+  /admin/settings/service-fee:
+    get:
+      tags:
+      - Cotización
+      summary: Consultar % de tarifa de servicio vigente
+      operationId: getServiceFee
+      description: 'Historias: HU-38. Rol requerido: ADMINISTRADOR.'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceFee'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+    put:
+      tags:
+      - Cotización
+      summary: Configurar % de tarifa de servicio
+      operationId: setServiceFee
+      description: 'Historias: HU-38. Rol requerido: ADMINISTRADOR.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceFee'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceFee'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        codigo:
+          type: string
+        mensaje:
+          type: string
+        detalles:
+          type: array
+          items:
+            type: string
+    Quote:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        noches:
+          type: integer
+        precioBase:
+          type: number
+        tarifaLimpieza:
+          type: number
+        serviciosAdicionales:
+          type: array
+          items:
+            type: object
+            properties:
+              nombre:
+                type: string
+              costo:
+                type: number
+        descuento:
+          type: number
+        porcentajeTarifaServicio:
+          type: number
+        tarifaServicio:
+          type: number
+        total:
+          type: number
+    QuoteRequest:
+      type: object
+      properties:
+        publicacionId:
+          type: string
+          format: uuid
+        fechaLlegada:
+          type: string
+          format: date
+        fechaSalida:
+          type: string
+          format: date
+        cantidadHuespedes:
+          type: integer
+          minimum: 1
+        serviciosAdicionales:
+          type: array
+          items:
+            type: string
+      required:
+      - publicacionId
+      - fechaLlegada
+      - fechaSalida
+      - cantidadHuespedes
+    ServiceFee:
+      type: object
+      properties:
+        porcentaje:
+          type: number
+          minimum: 0
+          maximum: 100
+      required:
+      - porcentaje
+  responses:
+    E400:
+      description: Solicitud inválida (validación)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E401:
+      description: No autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E403:
+      description: Sin permiso para el rol o recurso
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E404:
+      description: No encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E422:
+      description: Regla de negocio no cumplida (p. ej. falta información mínima o capacidad excedida)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

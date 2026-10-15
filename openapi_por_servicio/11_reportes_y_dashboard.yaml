@@ -1,0 +1,140 @@
+openapi: 3.0.3
+info:
+  title: Servicio Reportes y Dashboard - Marketplace de Alojamientos
+  version: 1.0.0
+  description: 'Contrato del servicio Reportes y Dashboard: rutas públicas (las enruta el API Gateway) y rutas internas /internal/* (solo dentro de la red de Docker Compose). Swagger UI: http://localhost:8091/swagger-ui.html'
+servers:
+- url: http://localhost:8091
+  description: Servicio Reportes y Dashboard (local)
+security:
+- bearerAuth: []
+tags:
+- name: Reportes y Dashboard
+paths:
+  /admin/dashboard:
+    get:
+      tags:
+      - Reportes y Dashboard
+      summary: 'Indicadores: usuarios, publicaciones activas, reservas por estado, ingresos estimados, ciudades con mayor demanda'
+      operationId: dashboard
+      description: 'Historias: HU-39. Rol requerido: ADMINISTRADOR.'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+  /admin/reports/export:
+    post:
+      tags:
+      - Reportes y Dashboard
+      summary: Exportar reporte a PDF o Excel y registrar quién y cuándo
+      operationId: exportReport
+      description: 'Historias: HU-40, HU-41. Rol requerido: ADMINISTRADOR.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+      responses:
+        '200':
+          description: Archivo generado
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Dashboard:
+      type: object
+      properties:
+        usuarios:
+          type: integer
+        publicacionesActivas:
+          type: integer
+        reservasPorEstado:
+          type: object
+          additionalProperties:
+            type: integer
+        ingresosEstimados:
+          type: number
+        ciudadesMayorDemanda:
+          type: array
+          items:
+            type: object
+            properties:
+              ciudad:
+                type: string
+              reservas:
+                type: integer
+    Error:
+      type: object
+      properties:
+        codigo:
+          type: string
+        mensaje:
+          type: string
+        detalles:
+          type: array
+          items:
+            type: string
+    ExportRequest:
+      type: object
+      properties:
+        tipoReporte:
+          type: string
+          enum:
+          - USUARIOS
+          - PUBLICACIONES
+          - RESERVAS
+          - INGRESOS
+          - DEMANDA
+        formato:
+          type: string
+          enum:
+          - PDF
+          - EXCEL
+      required:
+      - tipoReporte
+      - formato
+  responses:
+    E400:
+      description: Solicitud inválida (validación)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E401:
+      description: No autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E403:
+      description: Sin permiso para el rol o recurso
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

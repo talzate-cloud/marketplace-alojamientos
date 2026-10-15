@@ -1,0 +1,381 @@
+openapi: 3.0.3
+info:
+  title: Servicio Reservas y Cancelaciones - Marketplace de Alojamientos
+  version: 1.0.0
+  description: 'Contrato del servicio Reservas y Cancelaciones: rutas públicas (las enruta el API Gateway) y rutas internas /internal/* (solo dentro de la red de Docker Compose). Swagger UI: http://localhost:8086/swagger-ui.html'
+servers:
+- url: http://localhost:8086
+  description: Servicio Reservas y Cancelaciones (local)
+security:
+- bearerAuth: []
+tags:
+- name: Reservas y Cancelaciones
+paths:
+  /bookings:
+    post:
+      tags:
+      - Reservas y Cancelaciones
+      summary: Crear reserva inmediata con pago simulado (idempotente)
+      operationId: createBooking
+      description: 'Historias: HU-23, HU-24, HU-25. Rol requerido: HUESPED.'
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Clave de idempotencia (RF-026, RN-015). Un reintento con la misma clave devuelve la misma reserva.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingRequest'
+      responses:
+        '201':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '402':
+          $ref: '#/components/responses/E402'
+        '403':
+          $ref: '#/components/responses/E403'
+        '409':
+          $ref: '#/components/responses/E409'
+    get:
+      tags:
+      - Reservas y Cancelaciones
+      summary: 'Historial de reservas (Huésped: las suyas; Anfitrión: las de sus publicaciones)'
+      operationId: listBookings
+      description: 'Historias: HU-26. Rol requerido: HUESPED, ANFITRION.'
+      parameters:
+      - name: estado
+        in: query
+        schema:
+          $ref: '#/components/schemas/BookingStatus'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingList'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+  /bookings/{id}:
+    get:
+      tags:
+      - Reservas y Cancelaciones
+      summary: Consultar estado de una reserva
+      operationId: getBooking
+      description: 'Historias: HU-26.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+  /bookings/{id}/cancel:
+    post:
+      tags:
+      - Reservas y Cancelaciones
+      summary: Cancelar reserva y calcular devolución simulada
+      operationId: cancelBooking
+      description: 'Historias: HU-28, HU-29. Rol requerido: HUESPED, ADMINISTRADOR.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelRequest'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cancellation'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+  /internal/bookings/close-stays:
+    post:
+      tags:
+      - Reservas y Cancelaciones
+      summary: Cierre automático de estancias (CONFIRMADA a COMPLETADA)
+      operationId: closeStays
+      description: 'Historias: HU-27. Operación interna entre servicios (no expuesta al front).'
+      responses:
+        '200':
+          description: Operación exitosa
+        '401':
+          $ref: '#/components/responses/E401'
+  /internal/bookings/{id}:
+    get:
+      tags:
+      - Reservas y Cancelaciones
+      summary: Consultar una reserva (la consume Reseñas para validar propiedad y estado COMPLETADA)
+      operationId: internalGetBooking
+      description: 'Historias: HU-32. Operación interna entre servicios (no expuesta al front).'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '404':
+          $ref: '#/components/responses/E404'
+  /internal/bookings/future-confirmed:
+    get:
+      tags:
+      - Reservas y Cancelaciones
+      summary: Indica si un usuario tiene reservas futuras confirmadas (lo consume Identidad)
+      operationId: futureBookings
+      description: 'Historias: HU-06. Operación interna entre servicios (no expuesta al front).'
+      parameters:
+      - name: usuarioId
+        in: query
+        schema:
+          type: string
+        description: Id del usuario
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FutureBookings'
+        '400':
+          $ref: '#/components/responses/E400'
+  /internal/bookings/review-manual:
+    post:
+      tags:
+      - Reservas y Cancelaciones
+      summary: Pasar a EN_REVISION_MANUAL las reservas futuras de una publicación bloqueada (lo invoca Alojamientos)
+      operationId: reviewManual
+      description: 'Historias: HU-34. Operación interna entre servicios (no expuesta al front).'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicationRef'
+      responses:
+        '204':
+          description: Operación exitosa
+        '400':
+          $ref: '#/components/responses/E400'
+  /internal/bookings/stats:
+    get:
+      tags:
+      - Reservas y Cancelaciones
+      summary: Reservas por estado, ingresos estimados y demanda por ciudad
+      operationId: bookingStats
+      description: 'Historias: HU-39. Operación interna entre servicios (no expuesta al front).'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stats'
+        '401':
+          $ref: '#/components/responses/E401'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        codigoReserva:
+          type: string
+        publicacionId:
+          type: string
+          format: uuid
+        huespedId:
+          type: string
+          format: uuid
+        fechaLlegada:
+          type: string
+          format: date
+        fechaSalida:
+          type: string
+          format: date
+        cantidadHuespedes:
+          type: integer
+        montoTotal:
+          type: number
+        estado:
+          $ref: '#/components/schemas/BookingStatus'
+        creadaEn:
+          type: string
+          format: date-time
+    BookingList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Booking'
+    BookingRequest:
+      type: object
+      properties:
+        cotizacionId:
+          type: string
+          format: uuid
+        metodoPago:
+          type: string
+          description: Token de método de pago de prueba de Stripe, p. ej. pm_card_visa
+      required:
+      - cotizacionId
+      - metodoPago
+    BookingStatus:
+      type: string
+      enum:
+      - CONFIRMADA
+      - COMPLETADA
+      - CANCELADA
+      - EN_REVISION_MANUAL
+    CancelRequest:
+      type: object
+      properties:
+        motivo:
+          type: string
+          minLength: 3
+      required:
+      - motivo
+    Cancellation:
+      type: object
+      properties:
+        reservaId:
+          type: string
+          format: uuid
+        canceladaPor:
+          type: string
+          format: uuid
+        fecha:
+          type: string
+          format: date-time
+        motivo:
+          type: string
+        valorDevolucionSimulada:
+          type: number
+        estadoFinal:
+          $ref: '#/components/schemas/BookingStatus'
+    Error:
+      type: object
+      properties:
+        codigo:
+          type: string
+        mensaje:
+          type: string
+        detalles:
+          type: array
+          items:
+            type: string
+    FutureBookings:
+      type: object
+      properties:
+        tieneReservasFuturasConfirmadas:
+          type: boolean
+    PublicationRef:
+      type: object
+      properties:
+        publicacionId:
+          type: string
+          format: uuid
+      required:
+      - publicacionId
+    Stats:
+      type: object
+      additionalProperties: true
+      description: Indicadores agregados (conteos, sumas y agrupaciones)
+  responses:
+    E400:
+      description: Solicitud inválida (validación)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E401:
+      description: No autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E402:
+      description: Pago rechazado (Stripe test)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E403:
+      description: Sin permiso para el rol o recurso
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E404:
+      description: No encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E409:
+      description: Conflicto (reserva superpuesta, estado no permitido, duplicado)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

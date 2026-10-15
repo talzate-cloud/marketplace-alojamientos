@@ -1,0 +1,158 @@
+openapi: 3.0.3
+info:
+  title: Servicio Notificaciones - Marketplace de Alojamientos
+  version: 1.0.0
+  description: 'Contrato del servicio Notificaciones: rutas públicas (las enruta el API Gateway) y rutas internas /internal/* (solo dentro de la red de Docker Compose). Swagger UI: http://localhost:8088/swagger-ui.html'
+servers:
+- url: http://localhost:8088
+  description: Servicio Notificaciones (local)
+security:
+- bearerAuth: []
+tags:
+- name: Notificaciones
+paths:
+  /notifications:
+    get:
+      tags:
+      - Notificaciones
+      summary: Mis notificaciones, de la más reciente a la más antigua
+      operationId: listNotifications
+      description: 'Historias: HU-31.'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationList'
+        '401':
+          $ref: '#/components/responses/E401'
+  /notifications/{id}/read:
+    patch:
+      tags:
+      - Notificaciones
+      summary: Marcar notificación como leída
+      operationId: markRead
+      description: 'Historias: HU-31.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '401':
+          $ref: '#/components/responses/E401'
+        '404':
+          $ref: '#/components/responses/E404'
+  /internal/notifications:
+    post:
+      tags:
+      - Notificaciones
+      summary: Crear una notificación (asíncrono, con reintento)
+      operationId: createNotification
+      description: 'Historias: HU-30. Operación interna entre servicios (no expuesta al front).'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationCreate'
+      responses:
+        '201':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '400':
+          $ref: '#/components/responses/E400'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        codigo:
+          type: string
+        mensaje:
+          type: string
+        detalles:
+          type: array
+          items:
+            type: string
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tipoEvento:
+          type: string
+        entidadTipo:
+          type: string
+        entidadId:
+          type: string
+          format: uuid
+        mensaje:
+          type: string
+        leida:
+          type: boolean
+        creadaEn:
+          type: string
+          format: date-time
+    NotificationCreate:
+      type: object
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        tipoEvento:
+          type: string
+        entidadTipo:
+          type: string
+        entidadId:
+          type: string
+          format: uuid
+        mensaje:
+          type: string
+      required:
+      - usuarioId
+      - tipoEvento
+    NotificationList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+  responses:
+    E400:
+      description: Solicitud inválida (validación)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E401:
+      description: No autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E404:
+      description: No encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

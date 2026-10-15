@@ -1,0 +1,920 @@
+openapi: 3.0.3
+info:
+  title: Servicio Alojamientos - Marketplace de Alojamientos
+  version: 1.0.0
+  description: 'Contrato del servicio Alojamientos: rutas públicas (las enruta el API Gateway) y rutas internas /internal/* (solo dentro de la red de Docker Compose). Swagger UI: http://localhost:8082/swagger-ui.html'
+servers:
+- url: http://localhost:8082
+  description: Servicio Alojamientos (local)
+security:
+- bearerAuth: []
+tags:
+- name: Alojamientos
+paths:
+  /listings:
+    post:
+      tags:
+      - Alojamientos
+      summary: Crear publicación en BORRADOR
+      operationId: createListing
+      description: 'Historias: HU-07. Rol requerido: ANFITRION.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListingInput'
+      responses:
+        '201':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+  /listings/mine:
+    get:
+      tags:
+      - Alojamientos
+      summary: Consultar mis publicaciones con su estado
+      operationId: myListings
+      description: 'Historias: HU-15. Rol requerido: ANFITRION.'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListingList'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+  /listings/{id}:
+    get:
+      tags:
+      - Alojamientos
+      summary: Consultar una publicación (propietario o administrador)
+      operationId: getListing
+      description: 'Historias: HU-08. Rol requerido: ANFITRION, ADMINISTRADOR.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+    put:
+      tags:
+      - Alojamientos
+      summary: Editar publicación (propietario o administrador)
+      operationId: updateListing
+      description: 'Historias: HU-08. Rol requerido: ANFITRION, ADMINISTRADOR.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListingInput'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+  /listings/{id}/amenities:
+    put:
+      tags:
+      - Alojamientos
+      summary: Definir servicios (amenities)
+      operationId: setAmenities
+      description: 'Historias: HU-09. Rol requerido: ANFITRION.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AmenitiesInput'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+  /listings/{id}/rules:
+    put:
+      tags:
+      - Alojamientos
+      summary: Definir reglas del alojamiento
+      operationId: setRules
+      description: 'Historias: HU-09. Rol requerido: ANFITRION.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RulesInput'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+  /listings/{id}/images:
+    put:
+      tags:
+      - Alojamientos
+      summary: Definir rutas o referencias de imágenes
+      operationId: setImages
+      description: 'Historias: HU-09. Rol requerido: ANFITRION.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImagesInput'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+  /listings/{id}/pricing:
+    put:
+      tags:
+      - Alojamientos
+      summary: Definir tarifa de limpieza, descuento por estancia larga y servicios adicionales
+      operationId: setPricing
+      description: 'Historias: HU-10. Rol requerido: ANFITRION.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PricingInput'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+  /listings/{id}/cancellation-policy:
+    put:
+      tags:
+      - Alojamientos
+      summary: Asociar política de cancelación
+      operationId: setPolicy
+      description: 'Historias: HU-11. Rol requerido: ANFITRION.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyAssociation'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+  /cancellation-policies:
+    get:
+      tags:
+      - Alojamientos
+      summary: Listar políticas de cancelación disponibles
+      operationId: listPolicies
+      description: 'Historias: HU-11.'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyList'
+        '401':
+          $ref: '#/components/responses/E401'
+  /listings/{id}/submit:
+    post:
+      tags:
+      - Alojamientos
+      summary: Enviar a revisión (BORRADOR a PENDIENTE_REVISION)
+      operationId: submitListing
+      description: 'Historias: HU-12. Rol requerido: ANFITRION.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '422':
+          $ref: '#/components/responses/E422'
+  /listings/{id}/pause:
+    post:
+      tags:
+      - Alojamientos
+      summary: Pausar publicación (ACTIVA a PAUSADA)
+      operationId: pauseListing
+      description: 'Historias: HU-14. Rol requerido: ANFITRION.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+  /listings/{id}/resume:
+    post:
+      tags:
+      - Alojamientos
+      summary: Reactivar publicación (PAUSADA a ACTIVA); no permitido si está BLOQUEADA
+      operationId: resumeListing
+      description: 'Historias: HU-14. Rol requerido: ANFITRION.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+  /admin/listings:
+    get:
+      tags:
+      - Alojamientos
+      summary: Listar publicaciones por estado (p. ej. PENDIENTE_REVISION)
+      operationId: adminListings
+      description: 'Historias: HU-13. Rol requerido: ADMINISTRADOR.'
+      parameters:
+      - name: estado
+        in: query
+        schema:
+          $ref: '#/components/schemas/ListingStatus'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListingList'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+  /admin/listings/{id}/approve:
+    post:
+      tags:
+      - Alojamientos
+      summary: Aprobar publicación (PENDIENTE_REVISION a ACTIVA)
+      operationId: approveListing
+      description: 'Historias: HU-13. Rol requerido: ADMINISTRADOR.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+  /admin/listings/{id}/reject:
+    post:
+      tags:
+      - Alojamientos
+      summary: Rechazar publicación indicando motivo
+      operationId: rejectListing
+      description: 'Historias: HU-13. Rol requerido: ADMINISTRADOR.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReasonInput'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+  /admin/listings/{id}/block:
+    post:
+      tags:
+      - Alojamientos
+      summary: Bloquear publicación; reservas futuras pasan a EN_REVISION_MANUAL
+      operationId: blockListing
+      description: 'Historias: HU-34. Rol requerido: ADMINISTRADOR.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReasonInput'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+  /internal/listings/search:
+    get:
+      tags:
+      - Alojamientos
+      summary: Publicaciones ACTIVAS que cumplen los filtros (lo consume Búsqueda)
+      operationId: internalSearchListings
+      description: 'Historias: HU-19, HU-20. Operación interna entre servicios (no expuesta al front).'
+      parameters:
+      - name: ciudad
+        in: query
+        schema:
+          type: string
+        description: Ciudad
+      - name: huespedes
+        in: query
+        schema:
+          type: integer
+        description: Capacidad mínima
+      - name: tipo
+        in: query
+        schema:
+          type: string
+        description: Tipo
+      - name: precioMin
+        in: query
+        schema:
+          type: number
+        description: Precio mínimo
+      - name: precioMax
+        in: query
+        schema:
+          type: number
+        description: Precio máximo
+      - name: servicios
+        in: query
+        schema:
+          type: string
+        description: Amenities separados por coma
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListingList'
+        '400':
+          $ref: '#/components/responses/E400'
+  /internal/listings/{id}/quote-data:
+    get:
+      tags:
+      - Alojamientos
+      summary: Datos tarifarios para cotizar (lo consume Cotización)
+      operationId: quoteData
+      description: 'Historias: HU-22. Operación interna entre servicios (no expuesta al front).'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuoteData'
+        '404':
+          $ref: '#/components/responses/E404'
+  /internal/listings/{id}/cancellation-policy:
+    get:
+      tags:
+      - Alojamientos
+      summary: Política de cancelación de la publicación (la consume Reservas)
+      operationId: internalPolicy
+      description: 'Historias: HU-28. Operación interna entre servicios (no expuesta al front).'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '404':
+          $ref: '#/components/responses/E404'
+  /internal/listings/pause-by-host/{hostId}:
+    post:
+      tags:
+      - Alojamientos
+      summary: Pausar las publicaciones activas de un anfitrión (lo invoca Identidad al desactivar la cuenta)
+      operationId: pauseByHost
+      description: 'Historias: HU-06. Operación interna entre servicios (no expuesta al front).'
+      parameters:
+      - name: hostId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Operación exitosa
+        '404':
+          $ref: '#/components/responses/E404'
+  /internal/listings/stats:
+    get:
+      tags:
+      - Alojamientos
+      summary: Publicaciones activas y datos por ciudad para el dashboard
+      operationId: listingStats
+      description: 'Historias: HU-39. Operación interna entre servicios (no expuesta al front).'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stats'
+        '401':
+          $ref: '#/components/responses/E401'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AmenitiesInput:
+      type: object
+      properties:
+        servicios:
+          type: array
+          items:
+            type: string
+      required:
+      - servicios
+    Error:
+      type: object
+      properties:
+        codigo:
+          type: string
+        mensaje:
+          type: string
+        detalles:
+          type: array
+          items:
+            type: string
+    ImagesInput:
+      type: object
+      properties:
+        imagenes:
+          type: array
+          items:
+            type: string
+      required:
+      - imagenes
+    Listing:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        anfitrionId:
+          type: string
+          format: uuid
+        titulo:
+          type: string
+        descripcion:
+          type: string
+        ciudad:
+          type: string
+        ubicacionTextual:
+          type: string
+        tipoAlojamiento:
+          type: string
+        capacidad:
+          type: integer
+        precioPorNoche:
+          type: number
+        tarifaLimpieza:
+          type: number
+        porcentajeDescuentoEstanciaLarga:
+          type: number
+        servicios:
+          type: array
+          items:
+            type: string
+        reglas:
+          type: array
+          items:
+            type: string
+        imagenes:
+          type: array
+          items:
+            type: string
+        politicaCancelacionId:
+          type: string
+          format: uuid
+        estado:
+          $ref: '#/components/schemas/ListingStatus'
+        motivoRechazo:
+          type: string
+        motivoBloqueo:
+          type: string
+    ListingInput:
+      type: object
+      properties:
+        titulo:
+          type: string
+        descripcion:
+          type: string
+        ciudad:
+          type: string
+        ubicacionTextual:
+          type: string
+        tipoAlojamiento:
+          type: string
+          enum:
+          - APARTAMENTO
+          - CASA
+          - HABITACION
+          - CABANA
+          - OTRO
+        capacidad:
+          type: integer
+          minimum: 1
+        precioPorNoche:
+          type: number
+          exclusiveMinimum: 0
+      required:
+      - titulo
+      - descripcion
+      - ciudad
+      - ubicacionTextual
+      - tipoAlojamiento
+      - capacidad
+      - precioPorNoche
+    ListingList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Listing'
+    ListingStatus:
+      type: string
+      enum:
+      - BORRADOR
+      - PENDIENTE_REVISION
+      - ACTIVA
+      - PAUSADA
+      - BLOQUEADA
+    Policy:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        porcentajeDevolucion:
+          type: number
+        permiteLiberacionPeriodo:
+          type: boolean
+    PolicyAssociation:
+      type: object
+      properties:
+        politicaId:
+          type: string
+          format: uuid
+      required:
+      - politicaId
+    PolicyList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Policy'
+    PricingInput:
+      type: object
+      properties:
+        tarifaLimpieza:
+          type: number
+          minimum: 0
+        porcentajeDescuentoEstanciaLarga:
+          type: number
+          minimum: 0
+          maximum: 100
+        nochesMinimasDescuento:
+          type: integer
+          minimum: 1
+        serviciosAdicionales:
+          type: array
+          items:
+            type: object
+            properties:
+              nombre:
+                type: string
+              costo:
+                type: number
+                minimum: 0
+            required:
+            - nombre
+            - costo
+    QuoteData:
+      type: object
+      properties:
+        publicacionId:
+          type: string
+          format: uuid
+        estado:
+          $ref: '#/components/schemas/ListingStatus'
+        capacidad:
+          type: integer
+        precioPorNoche:
+          type: number
+        tarifaLimpieza:
+          type: number
+        porcentajeDescuentoEstanciaLarga:
+          type: number
+        nochesMinimasDescuento:
+          type: integer
+        serviciosAdicionales:
+          type: array
+          items:
+            type: object
+            properties:
+              nombre:
+                type: string
+              costo:
+                type: number
+    ReasonInput:
+      type: object
+      properties:
+        motivo:
+          type: string
+          minLength: 3
+      required:
+      - motivo
+    RulesInput:
+      type: object
+      properties:
+        reglas:
+          type: array
+          items:
+            type: string
+      required:
+      - reglas
+    Stats:
+      type: object
+      additionalProperties: true
+      description: Indicadores agregados (conteos, sumas y agrupaciones)
+  responses:
+    E400:
+      description: Solicitud inválida (validación)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E401:
+      description: No autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E403:
+      description: Sin permiso para el rol o recurso
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E404:
+      description: No encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E409:
+      description: Conflicto (reserva superpuesta, estado no permitido, duplicado)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E422:
+      description: Regla de negocio no cumplida (p. ej. falta información mínima o capacidad excedida)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

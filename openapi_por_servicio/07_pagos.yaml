@@ -1,0 +1,150 @@
+openapi: 3.0.3
+info:
+  title: Servicio Pagos - Marketplace de Alojamientos
+  version: 1.0.0
+  description: 'Contrato del servicio Pagos: rutas públicas (las enruta el API Gateway) y rutas internas /internal/* (solo dentro de la red de Docker Compose). Swagger UI: http://localhost:8087/swagger-ui.html'
+servers:
+- url: http://localhost:8087
+  description: Servicio Pagos (local)
+security:
+- bearerAuth: []
+tags:
+- name: Pagos
+paths:
+  /internal/payments:
+    post:
+      tags:
+      - Pagos
+      summary: Cobro simulado en Stripe (modo test)
+      operationId: charge
+      description: 'Historias: HU-25. Operación interna entre servicios (no expuesta al front).'
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Clave de idempotencia (RF-026, RN-015). Un reintento con la misma clave devuelve la misma reserva.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChargeRequest'
+      responses:
+        '201':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '400':
+          $ref: '#/components/responses/E400'
+        '402':
+          $ref: '#/components/responses/E402'
+  /internal/payments/{id}/refund:
+    post:
+      tags:
+      - Pagos
+      summary: Reembolso simulado en Stripe (modo test)
+      operationId: refund
+      description: 'Historias: HU-28. Operación interna entre servicios (no expuesta al front).'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundRequest'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '400':
+          $ref: '#/components/responses/E400'
+        '404':
+          $ref: '#/components/responses/E404'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ChargeRequest:
+      type: object
+      properties:
+        monto:
+          type: number
+        moneda:
+          type: string
+          example: usd
+        metodoPago:
+          type: string
+      required:
+      - monto
+      - moneda
+      - metodoPago
+    Error:
+      type: object
+      properties:
+        codigo:
+          type: string
+        mensaje:
+          type: string
+        detalles:
+          type: array
+          items:
+            type: string
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        stripePaymentIntentId:
+          type: string
+        monto:
+          type: number
+        estado:
+          type: string
+          enum:
+          - APROBADO
+          - RECHAZADO
+          - REEMBOLSADO
+    RefundRequest:
+      type: object
+      properties:
+        monto:
+          type: number
+      required:
+      - monto
+  responses:
+    E400:
+      description: Solicitud inválida (validación)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E402:
+      description: Pago rechazado (Stripe test)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E404:
+      description: No encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

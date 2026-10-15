@@ -1,0 +1,443 @@
+openapi: 3.0.3
+info:
+  title: Servicio Identidad y Usuarios - Marketplace de Alojamientos
+  version: 1.0.0
+  description: 'Contrato del servicio Identidad y Usuarios: rutas públicas (las enruta el API Gateway) y rutas internas /internal/* (solo dentro de la red de Docker Compose). Swagger UI: http://localhost:8081/swagger-ui.html'
+servers:
+- url: http://localhost:8081
+  description: Servicio Identidad y Usuarios (local)
+security:
+- bearerAuth: []
+tags:
+- name: Identidad y Usuarios
+paths:
+  /auth/register:
+    post:
+      tags:
+      - Identidad y Usuarios
+      summary: Registrar usuario Huésped o Anfitrión
+      operationId: register
+      description: 'Historias: HU-01.'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/E400'
+        '409':
+          $ref: '#/components/responses/E409'
+  /auth/login:
+    post:
+      tags:
+      - Identidad y Usuarios
+      summary: Iniciar sesión
+      operationId: login
+      description: 'Historias: HU-02.'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthToken'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+  /auth/logout:
+    post:
+      tags:
+      - Identidad y Usuarios
+      summary: Cerrar sesión
+      operationId: logout
+      description: 'Historias: HU-02.'
+      responses:
+        '204':
+          description: Operación exitosa
+        '401':
+          $ref: '#/components/responses/E401'
+  /auth/password-recovery:
+    post:
+      tags:
+      - Identidad y Usuarios
+      summary: Solicitar recuperación simulada de contraseña (token en notificación interna)
+      operationId: requestRecovery
+      description: 'Historias: HU-04.'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecoveryRequest'
+      responses:
+        '202':
+          description: Operación exitosa
+        '400':
+          $ref: '#/components/responses/E400'
+  /auth/password-reset:
+    post:
+      tags:
+      - Identidad y Usuarios
+      summary: Definir nueva contraseña con token válido
+      operationId: resetPassword
+      description: 'Historias: HU-04.'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetRequest'
+      responses:
+        '204':
+          description: Operación exitosa
+        '400':
+          $ref: '#/components/responses/E400'
+        '410':
+          $ref: '#/components/responses/E410'
+  /users/me:
+    get:
+      tags:
+      - Identidad y Usuarios
+      summary: Consultar mi perfil
+      operationId: getMe
+      description: 'Historias: HU-05.'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/E401'
+    put:
+      tags:
+      - Identidad y Usuarios
+      summary: Actualizar mis datos básicos
+      operationId: updateMe
+      description: 'Historias: HU-05.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+  /users/me/deactivate:
+    post:
+      tags:
+      - Identidad y Usuarios
+      summary: Desactivar mi cuenta (no permitido con reservas futuras confirmadas)
+      operationId: deactivate
+      description: 'Historias: HU-06.'
+      responses:
+        '204':
+          description: Operación exitosa
+        '401':
+          $ref: '#/components/responses/E401'
+        '409':
+          $ref: '#/components/responses/E409'
+  /users/me/reactivate:
+    post:
+      tags:
+      - Identidad y Usuarios
+      summary: Reactivar mi cuenta
+      operationId: reactivate
+      description: 'Historias: HU-06.'
+      responses:
+        '204':
+          description: Operación exitosa
+        '401':
+          $ref: '#/components/responses/E401'
+  /admin/users/{id}/status:
+    patch:
+      tags:
+      - Identidad y Usuarios
+      summary: Restringir o reactivar un usuario
+      operationId: setUserStatus
+      description: 'Historias: HU-35. Rol requerido: ADMINISTRADOR.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserStatusChange'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+  /internal/auth/validate:
+    post:
+      tags:
+      - Identidad y Usuarios
+      summary: Validar token y estado del usuario (lo consume el API Gateway)
+      operationId: validateToken
+      description: 'Historias: HU-02, HU-03, HU-35. Operación interna entre servicios (no expuesta al front).'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenValidationRequest'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenValidation'
+        '400':
+          $ref: '#/components/responses/E400'
+  /internal/users/stats:
+    get:
+      tags:
+      - Identidad y Usuarios
+      summary: Conteo de usuarios para el dashboard
+      operationId: userStats
+      description: 'Historias: HU-39. Operación interna entre servicios (no expuesta al front).'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stats'
+        '401':
+          $ref: '#/components/responses/E401'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AuthToken:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        rol:
+          $ref: '#/components/schemas/UserRole'
+    Error:
+      type: object
+      properties:
+        codigo:
+          type: string
+        mensaje:
+          type: string
+        detalles:
+          type: array
+          items:
+            type: string
+    LoginRequest:
+      type: object
+      properties:
+        correo:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+      - correo
+      - password
+    ProfileUpdate:
+      type: object
+      properties:
+        nombre:
+          type: string
+        telefono:
+          type: string
+      required:
+      - nombre
+    RecoveryRequest:
+      type: object
+      properties:
+        correo:
+          type: string
+          format: email
+      required:
+      - correo
+    RegisterRequest:
+      type: object
+      properties:
+        nombre:
+          type: string
+        correo:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        rol:
+          type: string
+          enum:
+          - HUESPED
+          - ANFITRION
+          description: ADMINISTRADOR no es seleccionable (RN-001)
+      required:
+      - nombre
+      - correo
+      - password
+      - rol
+    ResetRequest:
+      type: object
+      properties:
+        token:
+          type: string
+        nuevaPassword:
+          type: string
+          minLength: 8
+      required:
+      - token
+      - nuevaPassword
+    Stats:
+      type: object
+      additionalProperties: true
+      description: Indicadores agregados (conteos, sumas y agrupaciones)
+    TokenValidation:
+      type: object
+      properties:
+        valido:
+          type: boolean
+        usuarioId:
+          type: string
+          format: uuid
+        rol:
+          $ref: '#/components/schemas/UserRole'
+        estado:
+          $ref: '#/components/schemas/UserStatus'
+    TokenValidationRequest:
+      type: object
+      properties:
+        token:
+          type: string
+      required:
+      - token
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        correo:
+          type: string
+          format: email
+        rol:
+          $ref: '#/components/schemas/UserRole'
+        estado:
+          $ref: '#/components/schemas/UserStatus'
+    UserRole:
+      type: string
+      enum:
+      - HUESPED
+      - ANFITRION
+      - ADMINISTRADOR
+    UserStatus:
+      type: string
+      enum:
+      - ACTIVO
+      - INACTIVO
+      - RESTRINGIDO
+    UserStatusChange:
+      type: object
+      properties:
+        estado:
+          type: string
+          enum:
+          - ACTIVO
+          - RESTRINGIDO
+        motivo:
+          type: string
+      required:
+      - estado
+  responses:
+    E400:
+      description: Solicitud inválida (validación)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E401:
+      description: No autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E403:
+      description: Sin permiso para el rol o recurso
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E404:
+      description: No encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E409:
+      description: Conflicto (reserva superpuesta, estado no permitido, duplicado)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E410:
+      description: Token vencido o ya usado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

@@ -1,0 +1,235 @@
+openapi: 3.0.3
+info:
+  title: Servicio Búsqueda - Marketplace de Alojamientos
+  version: 1.0.0
+  description: 'Contrato del servicio Búsqueda: rutas públicas (las enruta el API Gateway) y rutas internas /internal/* (solo dentro de la red de Docker Compose). Swagger UI: http://localhost:8084/swagger-ui.html'
+servers:
+- url: http://localhost:8084
+  description: Servicio Búsqueda (local)
+security:
+- bearerAuth: []
+tags:
+- name: Búsqueda
+paths:
+  /search/listings:
+    get:
+      tags:
+      - Búsqueda
+      summary: Buscar publicaciones ACTIVAS disponibles con filtros
+      operationId: searchListings
+      description: 'Historias: HU-19, HU-20.'
+      security: []
+      parameters:
+      - name: ciudad
+        in: query
+        schema:
+          type: string
+        description: Ciudad
+      - name: llegada
+        in: query
+        schema:
+          type: string
+        description: Fecha de llegada (YYYY-MM-DD)
+      - name: salida
+        in: query
+        schema:
+          type: string
+        description: Fecha de salida, posterior a la llegada
+      - name: huespedes
+        in: query
+        schema:
+          type: integer
+        description: Número de huéspedes
+      - name: tipo
+        in: query
+        schema:
+          type: string
+        description: Tipo de alojamiento
+      - name: precioMin
+        in: query
+        schema:
+          type: number
+        description: Precio mínimo por noche
+      - name: precioMax
+        in: query
+        schema:
+          type: number
+        description: Precio máximo por noche
+      - name: servicios
+        in: query
+        schema:
+          type: string
+        description: Amenities separados por coma
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResults'
+        '400':
+          $ref: '#/components/responses/E400'
+  /search/listings/{id}:
+    get:
+      tags:
+      - Búsqueda
+      summary: Detalle de un alojamiento para comparar antes de cotizar
+      operationId: listingDetail
+      description: 'Historias: HU-21.'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListingDetail'
+        '404':
+          $ref: '#/components/responses/E404'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        codigo:
+          type: string
+        mensaje:
+          type: string
+        detalles:
+          type: array
+          items:
+            type: string
+    Listing:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        anfitrionId:
+          type: string
+          format: uuid
+        titulo:
+          type: string
+        descripcion:
+          type: string
+        ciudad:
+          type: string
+        ubicacionTextual:
+          type: string
+        tipoAlojamiento:
+          type: string
+        capacidad:
+          type: integer
+        precioPorNoche:
+          type: number
+        tarifaLimpieza:
+          type: number
+        porcentajeDescuentoEstanciaLarga:
+          type: number
+        servicios:
+          type: array
+          items:
+            type: string
+        reglas:
+          type: array
+          items:
+            type: string
+        imagenes:
+          type: array
+          items:
+            type: string
+        politicaCancelacionId:
+          type: string
+          format: uuid
+        estado:
+          $ref: '#/components/schemas/ListingStatus'
+        motivoRechazo:
+          type: string
+        motivoBloqueo:
+          type: string
+    ListingDetail:
+      type: object
+      properties:
+        listing:
+          $ref: '#/components/schemas/Listing'
+        politicaCancelacion:
+          $ref: '#/components/schemas/Policy'
+        calificacionPromedio:
+          type: number
+        totalReseñas:
+          type: integer
+    ListingStatus:
+      type: string
+      enum:
+      - BORRADOR
+      - PENDIENTE_REVISION
+      - ACTIVA
+      - PAUSADA
+      - BLOQUEADA
+    Policy:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        porcentajeDevolucion:
+          type: number
+        permiteLiberacionPeriodo:
+          type: boolean
+    SearchResults:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              titulo:
+                type: string
+              ciudad:
+                type: string
+              tipoAlojamiento:
+                type: string
+              capacidad:
+                type: integer
+              precioPorNoche:
+                type: number
+              calificacionPromedio:
+                type: number
+              imagenPrincipal:
+                type: string
+        mensaje:
+          type: string
+          description: 'Ej.: ''No hay resultados'' (CA-057)'
+  responses:
+    E400:
+      description: Solicitud inválida (validación)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E404:
+      description: No encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

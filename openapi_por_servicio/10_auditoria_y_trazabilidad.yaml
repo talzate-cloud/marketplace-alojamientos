@@ -1,0 +1,156 @@
+openapi: 3.0.3
+info:
+  title: Servicio Auditoría y Trazabilidad - Marketplace de Alojamientos
+  version: 1.0.0
+  description: 'Contrato del servicio Auditoría y Trazabilidad: rutas públicas (las enruta el API Gateway) y rutas internas /internal/* (solo dentro de la red de Docker Compose). Swagger UI: http://localhost:8090/swagger-ui.html'
+servers:
+- url: http://localhost:8090
+  description: Servicio Auditoría y Trazabilidad (local)
+security:
+- bearerAuth: []
+tags:
+- name: Auditoría y Trazabilidad
+paths:
+  /admin/audit-events:
+    get:
+      tags:
+      - Auditoría y Trazabilidad
+      summary: Consultar eventos de auditoría con filtros
+      operationId: listAudit
+      description: 'Historias: HU-37, HU-42. Rol requerido: ADMINISTRADOR.'
+      parameters:
+      - name: usuario
+        in: query
+        schema:
+          type: string
+        description: Id de usuario
+      - name: entidad
+        in: query
+        schema:
+          type: string
+        description: Entidad
+      - name: accion
+        in: query
+        schema:
+          type: string
+        description: Acción
+      - name: desde
+        in: query
+        schema:
+          type: string
+        description: Fecha inicial
+      - name: hasta
+        in: query
+        schema:
+          type: string
+        description: Fecha final
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditList'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+  /internal/audit-events:
+    post:
+      tags:
+      - Auditoría y Trazabilidad
+      summary: Registrar evento estructurado (sin datos sensibles)
+      operationId: recordAudit
+      description: 'Historias: HU-42. Operación interna entre servicios (no expuesta al front).'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuditEvent'
+      responses:
+        '201':
+          description: Operación exitosa
+        '400':
+          $ref: '#/components/responses/E400'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AuditEvent:
+      type: object
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        entidad:
+          type: string
+        entidadId:
+          type: string
+          format: uuid
+        accion:
+          type: string
+        resultado:
+          type: string
+        detalle:
+          type: string
+      required:
+      - entidad
+      - accion
+      - resultado
+    AuditList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              usuarioId:
+                type: string
+                format: uuid
+              entidad:
+                type: string
+              accion:
+                type: string
+              resultado:
+                type: string
+              fecha:
+                type: string
+                format: date-time
+    Error:
+      type: object
+      properties:
+        codigo:
+          type: string
+        mensaje:
+          type: string
+        detalles:
+          type: array
+          items:
+            type: string
+  responses:
+    E400:
+      description: Solicitud inválida (validación)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E401:
+      description: No autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    E403:
+      description: Sin permiso para el rol o recurso
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
